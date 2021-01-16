@@ -1,6 +1,6 @@
 import os.path
-from data.base_dataset import BaseDataset, get_transform
-from data.image_folder import make_dataset
+from datasets.base_dataset import BaseDataset, get_transform
+from datasets.image_folder import make_dataset
 from PIL import Image
 import random
 import util.util as util
@@ -61,7 +61,7 @@ class UnalignedDataset(BaseDataset):
         # Apply image transformation
         # For FastCUT mode, if in finetuning phase (learning rate is decaying),
         # do not perform resize-crop data augmentation of CycleGAN.
-#        print('current_epoch', self.current_epoch)
+        # print('current_epoch', self.current_epoch)
         is_finetuning = self.opt.isTrain and self.current_epoch > self.opt.n_epochs
         modified_opt = util.copyconf(self.opt, load_size=self.opt.crop_size if is_finetuning else self.opt.load_size)
         transform = get_transform(modified_opt)

@@ -3,7 +3,7 @@ import os
 from util import util
 import torch
 import models
-import data
+import datasets
 
 
 class BaseOptions():
@@ -14,7 +14,7 @@ class BaseOptions():
     """
 
     def __init__(self, cmd_line=None):
-        """Reset the class; indicates the class hasn't been initailized"""
+        """Reset the class; indicates the class hasn't been initialized"""
         self.initialized = False
         self.cmd_line = None
         if cmd_line is not None:
@@ -23,10 +23,10 @@ class BaseOptions():
     def initialize(self, parser):
         """Define the common options that are used in both training and test."""
         # basic parameters
-        parser.add_argument('--dataroot', default='placeholder', help='path to images (should have subfolders trainA, trainB, valA, valB, etc)')
+        parser.add_argument('--dataroot', default='data', help='path to images (should have subfolders trainA, trainB, valA, valB, etc)')
         parser.add_argument('--name', type=str, default='experiment_name', help='name of the experiment. It decides where to store samples and models')
         parser.add_argument('--easy_label', type=str, default='experiment_name', help='Interpretable name')
-        parser.add_argument('--gpu_ids', type=str, default='0', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
+        parser.add_argument('--gpu_ids', type=str, default='0,1,2,3,4,5,6,7', help='gpu ids: e.g. 0  0,1,2, 0,2. use -1 for CPU')
         parser.add_argument('--checkpoints_dir', type=str, default='./checkpoints', help='models are saved here')
         # model parameters
         parser.add_argument('--model', type=str, default='cut', help='chooses which model to use.')
@@ -46,13 +46,13 @@ class BaseOptions():
         parser.add_argument('--no_antialias', action='store_true', help='if specified, use stride=2 convs instead of antialiased-downsampling (sad)')
         parser.add_argument('--no_antialias_up', action='store_true', help='if specified, use [upconv(learned filter)] instead of [upconv(hard-coded [1,3,3,1] filter), conv]')
         # dataset parameters
-        parser.add_argument('--dataset_mode', type=str, default='unaligned', help='chooses how datasets are loaded. [unaligned | aligned | single | colorization]')
+        parser.add_argument('--dataset_mode', type=str, default='reference_hd', help='chooses how datasets are loaded. [unaligned | aligned | single | colorization]')
         parser.add_argument('--direction', type=str, default='AtoB', help='AtoB or BtoA')
         parser.add_argument('--serial_batches', action='store_true', help='if true, takes images in order to make batches, otherwise takes them randomly')
-        parser.add_argument('--num_threads', default=4, type=int, help='# threads for loading data')
-        parser.add_argument('--batch_size', type=int, default=1, help='input batch size')
-        parser.add_argument('--load_size', type=int, default=286, help='scale images to this size')
-        parser.add_argument('--crop_size', type=int, default=256, help='then crop to this size')
+        parser.add_argument('--num_threads', default=8, type=int, help='# threads for loading data')
+        parser.add_argument('--batch_size', type=int, default=8, help='input batch size')
+        parser.add_argument('--load_size', type=int, default=512, help='scale images to this size')
+        parser.add_argument('--crop_size', type=int, default=512, help='then crop to this size')
         parser.add_argument('--max_dataset_size', type=int, default=float("inf"), help='Maximum number of samples allowed per dataset. If the dataset directory contains more than max_dataset_size, only a subset is loaded.')
         parser.add_argument('--preprocess', type=str, default='resize_and_crop', help='scaling and cropping of images at load time [resize_and_crop | crop | scale_width | scale_width_and_crop | none]')
         parser.add_argument('--no_flip', action='store_true', help='if specified, do not flip the images for data augmentation')
@@ -68,6 +68,11 @@ class BaseOptions():
         parser.add_argument('--stylegan2_G_num_downsampling',
                             default=1, type=int,
                             help='Number of downsampling layers used by StyleGAN2Generator')
+
+        parser.add_argument('--dataset_name', type=str, default='reference_hd',
+                            choices=['masterpiece_hd', 'masterpiece','reference_hd', 'reference_ss_hd', 'reference_test_hd', 'multipiece'])
+        parser.add_argument('--case_name', type=str, default='qm0')
+        parser.add_argument('--sketch_mode', type=str, default='c', choices=['c', 's', 'l'], help='Sketch type')
 
         self.initialized = True
         return parser
@@ -99,7 +104,7 @@ class BaseOptions():
 
         # modify dataset-related parser options
         dataset_name = opt.dataset_mode
-        dataset_option_setter = data.get_option_setter(dataset_name)
+        dataset_option_setter = datasets.get_option_setter(dataset_name)
         parser = dataset_option_setter(parser, self.isTrain)
 
         # save and return the parser
